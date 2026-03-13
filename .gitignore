@@ -42,3 +42,7 @@ k8s-*/*
 
 # Test credentials (never commit)
 tests/**/creds.json
+
+# mise-en-place
+/mise/mise.local.toml
+

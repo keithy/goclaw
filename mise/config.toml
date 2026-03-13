@@ -11,6 +11,8 @@ docker = "podman"
 [env]
 _.file = { path = ".env" }
 _.source = { path = "mise/compose_file.sh" , tools = true }
+COMPOSE_PROJECT_NAME = "pod"
+BUILDAH_FORMAT = "docker"
 GOCLAW_GATEWAY_TOKEN={ required = "Create using ./prepare-env.sh" }
 GOCLAW_ENCRYPTION_KEY={ required = "Create using ./prepare-env.sh" }
 
