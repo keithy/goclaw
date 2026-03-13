@@ -54,6 +54,8 @@ volumes:
   goclaw-workspace:
 
 networks:
+  default:
+    driver: bridge
   shared:
     name: shared
     driver: bridge
