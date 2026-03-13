@@ -46,3 +46,5 @@ tests/**/creds.json
 # mise-en-place
 /mise/mise.local.toml
 
+ui/simple-saas
+*.tar
