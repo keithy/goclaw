@@ -44,7 +44,8 @@ k8s-*/*
 tests/**/creds.json
 
 # mise-en-place
-/mise/mise.local.toml
+/.miserc.toml
+/mise.*.toml
 
 ui/simple-saas
 *.tar

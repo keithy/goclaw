@@ -1,0 +1,23 @@
+# mise.local.toml = local environment settings
+#
+# This is NOT loaded when in <parent>/goclaw/mise/mise.local.toml
+# Adapt and move to a parent directory
+# 1) <parent>/goclaw/mise.local.toml
+
+[env]
+# COMPOSE_PROJECT_NAME = "magic"
+
+# Ironically docker compose is not composable (http://github.com/keithy/sprankle-pod)
+# postgres:gateway:selfservice:sandbox:browser:otel:tailscale:upgrade:vnstock-mcp
+# GOCLAW_MODULES = 'postgres:selfservice'
+
+# Map to my keys managed in ~/.config/mise
+#
+# GOCLAW_GEMINI_API_KEY = "${GEMINI_API_KEY_angels:-}"
+
+# --- Database (only for non-Docker deployments) ---
+# Docker Compose auto-builds this from POSTGRES_USER/PASSWORD/DB.
+# GOCLAW_POSTGRES_DSN=postgres://user:pass@host:5432/dbname?sslmode=disable
+
+# --- DEBUG ---
+#GOCLAW_TRACE_VERBOSE=1

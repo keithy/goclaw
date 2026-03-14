@@ -1,0 +1,16 @@
+# Using PODMAN
+
+# .misrc.toml 
+# [env] = "podman"
+
+[shell_alias]
+docker = "podman"
+
+[env]
+# needed for healthcheck support
+BUILDAH_FORMAT = "docker"
+
+# --- OVERIDE PODMAN CONFIGURATION ---
+CONTAINERS_REGISTRIES_CONF="{{config_root}}/mise/registries.conf"
+# CONTAINERS_STORAGE_CONF="{{config_root}}/mise/storage.conf"
+# CONTAINERS_CONF="{{config_root}}/mise/containers.conf"
