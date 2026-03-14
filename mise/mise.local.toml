@@ -20,4 +20,4 @@
 # GOCLAW_POSTGRES_DSN=postgres://user:pass@host:5432/dbname?sslmode=disable
 
 # --- DEBUG ---
-#GOCLAW_TRACE_VERBOSE=1
+# GOCLAW_TRACE_VERBOSE=1

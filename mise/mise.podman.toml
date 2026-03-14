@@ -1,6 +1,11 @@
-# Using PODMAN
+# mise.podman.toml = podman environment settings
+#
+# This is NOT loaded when in <parent>/goclaw/mise/mise.podman.toml
+# move to a parent directory
+# 1) <parent>/goclaw/mise.podman.toml
 
-# .misrc.toml 
+# Enable via:
+# <parent>/goclaw/.misrc.toml 
 # [env] = "podman"
 
 [shell_alias]
@@ -11,6 +16,15 @@ docker = "podman"
 BUILDAH_FORMAT = "docker"
 
 # --- OVERIDE PODMAN CONFIGURATION ---
+
+# Default Value (documentation of defaults)
+# CONTAINERS_REGISTRIES_CONF="/etc/containers/registries.conf"
+# Require search registries set to docker.io to resolve shortnamed container names
 CONTAINERS_REGISTRIES_CONF="{{config_root}}/mise/registries.conf"
-# CONTAINERS_STORAGE_CONF="{{config_root}}/mise/storage.conf"
-# CONTAINERS_CONF="{{config_root}}/mise/containers.conf"
+CONTAINERS_STORAGE_CONF="{{config_root}}/mise/storage.conf"
+
+# Default Value (documentation of defaults)
+# CONTAINERS_CONF="/usr/share/containers/containers.conf"
+
+# Prefer a more accessible volume_path = /srv
+CONTAINERS_CONF="{{config_root}}/mise/containers.conf"
