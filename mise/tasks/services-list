@@ -1,0 +1,7 @@
+#!/bin/bash
+#MISE description="List compose services"
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+${DOCKER_CMD:-docker} compose config --services

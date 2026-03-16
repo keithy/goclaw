@@ -1,0 +1,129 @@
+#!/bin/bash
+#MISE description="Setup mise in a worktree branch (while mise is not merged into main)"
+# Usage: mise run mise-init
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_NAME="${PROJECT_NAME:-$(basename "$PWD")}"
+REPO_DIR="${REPO_DIR:-$PWD}"
+# Sanitize branch name for use in filenames (replace / with -)
+BRANCH_NAME="$(git branch --show-current)"
+BRANCH_FILENAME="${BRANCH_NAME//\//-}"
+
+# Detect if running from inside mise worktree
+if git rev-parse --is-inside-work-tree &>/dev/null && git rev-parse --show-toplevel &>/dev/null; then
+    REPO_ROOT="$(git rev-parse --show-toplevel)"
+    if [[ "$PWD" == *"mise"* ]] || [[ "$(git branch --show-current)" == "mise-data" ]]; then
+        echo "Running inside mise worktree, switching to repo root..."
+        cd "$REPO_ROOT"
+    fi
+fi
+
+# Create orphan branch for mise data
+if git rev-parse --verify mise-data &>/dev/null; then
+    echo "Branch mise-data already exists"
+else
+    git checkout --orphan mise-data
+    git ls-files -z | xargs -0 rm -f
+    mkdir -p mise
+    git add .
+    git commit -m "Initial mise-data branch"
+    git checkout -
+    echo "Created mise-data branch"
+fi
+
+# Add worktree
+if git worktree list | grep -q "mise "; then
+    echo "Worktree mise already exists"
+else
+    git worktree add mise mise-data
+    echo "Created worktree at mise"
+fi
+
+# Create base config (idempotent - skip if exists)
+if [ -f mise/config.toml ]; then
+    echo "Config mise/config.toml already exists, skipping"
+else
+    cat > mise/config.toml << EOF
+# Mise configuration
+
+[env]
+PROJECT_NAME = "$PROJECT_NAME"
+
+EOF
+fi
+
+# Create branch-specific config (idempotent - skip if exists)
+cd mise
+if [ -f "$BRANCH_FILENAME.toml" ]; then
+    echo "Config mise/$BRANCH_FILENAME.toml already exists, skipping"
+else
+    cat > "$BRANCH_FILENAME.toml" << EOF
+# Branch-specific config for $BRANCH_NAME
+
+[env]
+REPO_DIR = "$REPO_DIR"
+EOF
+fi
+cd ..
+
+# Create symlink to current branch config (idempotent)
+cd mise
+if [ -f "$BRANCH_FILENAME.toml" ]; then
+    ln -sf "$BRANCH_FILENAME".toml config.local.toml
+fi
+cd ..
+
+# Add to .git/info/exclude (local-only, not committed)
+mkdir -p .git/info
+if ! grep -q "^mise/$" .git/info/exclude 2>/dev/null; then
+    echo "mise/" >> .git/info/exclude
+fi
+
+# Commit branch config (idempotent - only if changes exist)
+cd mise
+if [ -f "$BRANCH_FILENAME.toml" ] && git diff --quiet "$BRANCH_FILENAME.toml" config.local.toml 2>/dev/null; then
+    echo "Branch config already committed, skipping"
+else
+    git add "$BRANCH_FILENAME.toml" config.local.toml 2>/dev/null || true
+    git commit -m "Add $BRANCH_FILENAME config" 2>/dev/null || true
+fi
+cd ..
+
+# Install git hook for auto-updating symlink on branch switch (idempotent)
+HOOK_DIR="$(pwd)/.git/hooks"
+mkdir -p "$HOOK_DIR"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+if [ -f "$SCRIPT_DIR/githooks/post-checkout" ]; then
+    if cmp -s "$SCRIPT_DIR/githooks/post-checkout" "$HOOK_DIR/post-checkout" 2>/dev/null; then
+        echo "Hook post-checkout already installed, skipping"
+    else
+        cp "$SCRIPT_DIR/githooks/post-checkout" "$HOOK_DIR/post-checkout"
+        chmod +x "$HOOK_DIR/post-checkout"
+        echo "Installed post-checkout hook"
+    fi
+fi
+
+# Copy build scripts to mise/tasks (always update from skill source)
+mkdir -p mise/tasks
+for script in switch rollback confirm build-current build-next pull-prs upstream-init upstream-to-main track-prs; do
+    if [ -f "$SCRIPT_DIR/${script}.sh" ]; then
+        cp "$SCRIPT_DIR/${script}.sh" "mise/tasks/$script"
+        chmod +x "mise/tasks/$script"
+        echo "Installed mise task: $script"
+    fi
+done
+
+# Commit build tasks (idempotent - only if changes exist)
+cd mise
+if git diff --quiet tasks/ 2>/dev/null; then
+    echo "Tasks already committed, skipping"
+else
+    git add tasks/ 2>/dev/null || true
+    git commit -m "Add build tasks" 2>/dev/null || true
+fi
+cd ..
+
+echo "Mise setup complete!"
+echo "Run: mise run switch / mise run rollback / mise run confirm"

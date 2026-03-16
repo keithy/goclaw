@@ -1,0 +1,28 @@
+#!/bin/bash
+#MISE description="Enable podman environment"
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+if [ ! -f mise.podman.toml ]; then
+   mv mise/podman-resources/mise.podman.toml mise.podman.toml 
+fi
+
+if [ ! -f .miserc.toml ]; then
+   mv mise/podman-resources/miserc.toml .miserc.toml 
+fi
+
+if [ ! -f ~/.config/containers/containers.conf ]; then
+    mkdir -p ~/.config/containers
+    ln -s "$(pwd)/mise/podman-resources/containers.conf" ~/.config/containers/containers.conf
+fi
+
+if [ ! -f ~/.config/containers/registries.conf ]; then
+    mkdir -p ~/.config/containers
+    ln -s "$(pwd)/mise/podman-resources/registries.conf" ~/.config/containers/registries.conf
+fi
+
+if [ ! -f ~/.config/containers/storage.conf ]; then
+    mkdir -p ~/.config/containers
+    ln -s "$(pwd)/mise/podman-resources/storage.conf" ~/.config/containers/storage.conf
+fi

@@ -1,0 +1,109 @@
+#!/bin/bash
+#MISE description="Sync main with upstream (with confirmation)"
+#MISE raw=true
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Detect --dry-run mode
+if [ "${1:-}" = "--dry-run" ]; then
+    DRY_RUN=true
+else
+    DRY_RUN=false
+fi
+
+# Switch to main branch first
+current_branch=$(git branch --show-current)
+if [ "$current_branch" != "main" ]; then
+    echo "Switching from $current_branch to main..."
+    git checkout main
+fi
+
+# Check upstream remote exists
+if ! git remote get-url upstream &>/dev/null; then
+    echo "upstream remote not configured. Run: upstream-init.sh"
+    exit 1
+fi
+
+echo "========================================"
+echo "  upstream-to-main: Sync main with upstream"
+echo "========================================"
+echo ""
+
+git fetch upstream
+
+local_head=$(git rev-parse HEAD)
+remote_head=$(git rev-parse upstream/main)
+origin_head=$(git rev-parse origin/main 2>/dev/null || echo "(not set)")
+
+echo "Current state:"
+echo "  Local main:   $(git rev-parse --short "$local_head")"
+echo "  Upstream:     $(git rev-parse --short "$remote_head")"
+echo "  Origin/main:  $(git rev-parse --short "$origin_head" 2>/dev/null || echo "(not tracking)")"
+echo ""
+
+# Check if already up to date
+if [[ "$local_head" == "$remote_head" ]]; then
+    echo "✓ Already up to date with upstream/main"
+    exit 0
+fi
+
+# Count commits ahead/behind
+commits_ahead=$(git rev-list --count upstream/main..HEAD 2>/dev/null || echo "0")
+commits_behind=$(git rev-list --count HEAD..upstream/main 2>/dev/null || echo "0")
+
+echo "Difference:"
+echo "  Upstream is $commits_behind commits ahead"
+echo "  Local is $commits_ahead commits ahead"
+echo ""
+
+# Check for divergence
+diverged=false
+if ! git merge-base --is-ancestor "$remote_head" HEAD 2>/dev/null; then
+    diverged=true
+    echo "⚠️  WARNING: Local main has DIVERGED from upstream!"
+    echo "    (Local contains commits not in upstream)"
+fi
+
+echo "========================================"
+echo ""
+echo "This will:"
+echo "  1. Reset local main to upstream/main (discards local commits)"
+if [ "$origin_head" != "(not set)" ]; then
+    echo "  2. Force-push to origin/main (your fork on GitHub)"
+fi
+echo ""
+echo "========================================"
+echo ""
+
+if [ "$DRY_RUN" = true ]; then
+    echo "[DRY RUN] No changes made. Run without --dry-run to proceed."
+    exit 0
+fi
+
+# Confirmation prompt
+echo -n "Proceed? (y/n) "
+read -r response
+if [[ "$response" != "y" && "$response" != "Y" ]]; then
+    echo "Aborted."
+    exit 0
+fi
+
+# Fast-forward reset - clean sync, no merge commits
+echo ""
+echo "Resetting main to upstream/main..."
+git reset --hard upstream/main
+echo "✓ Done"
+
+# Also update origin/main to match
+if git remote get-url origin &>/dev/null; then
+    echo ""
+    echo "Pushing to origin/main..."
+    git push origin main --force-with-lease
+    echo "✓ Pushed to origin/main"
+fi
+
+echo ""
+echo "========================================"
+echo "✓ Sync complete"
+echo "========================================"

@@ -1,0 +1,8 @@
+#!/bin/bash
+#MISE description="List ids map"
+set -euo pipefail
+
+echo "UIDS: (Container)(host)   (range)"
+podman unshare cat /proc/self/uid_map
+echo "GIDS:"
+podman unshare cat /proc/self/gid_map
