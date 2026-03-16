@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$MISE_PROJECT_ROOT"
 
 # Must run from repo root, not subdirectory
-if [[ ! -f "mise/tasks/mise-setup-prior-to-merge" ]]; then
+if [[ ! -f "mise/tasks/git/mise-setup-prior-to-merge" ]]; then
     echo "Error: This script must be run from the repository root (goclaw directory)"
     echo "Run: cd /path/to/goclaw && mise run mise-setup-prior-to-merge"
     exit 1
