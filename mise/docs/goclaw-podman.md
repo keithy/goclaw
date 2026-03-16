@@ -6,7 +6,7 @@ This guide covers Podman-specific setup.
 
 ### 
 
-Using [mise-en-place](https://mise.jdx.ai/) to manage then environment
+Using [mise-en-place](https://mise.jdx.ai/) to manage the environment
 helps streamline docker compose and make the podman option easily available.
 
 ## Podman vs Docker
@@ -27,7 +27,7 @@ mise run podman:enable
 ```
 
 This:
-- Moves `mise/podman-resources/mise.podman.toml` → `./mise.podman.toml` (activates podman env)
+- Moves `mise/podman-resources/mise.podman.toml` → `./mise.podman.toml` (configures podman envinvironment)
 - Moves `miserc.toml` → `./.miserc.toml` (sets `MISE_ENV = "podman"`)
 - Creates symlinks in `~/.config/containers/` for podman config files (batteries included defaults)
 
@@ -69,7 +69,7 @@ container processes, so that group membership IS significant for multiple
 users with a coder/developer GID.
 
 ```bash
-mise run podman-ids-map
+mise run podman:ids-map
 ```
 
 This shows how your host UID maps inside containers:
@@ -78,12 +78,10 @@ UIDS: (Container)(host)   (range)
 0         1000      1
 ```
 
-If your UID isn't mapped, you'll get permission errors.
-
 ### 3. Run with Podman Compose
 
 ```bash
-podman compose -f docker-compose.yml -f docker-compose.postgres.yml up
+podman compose up -d
 ```
 
 ## Environment Variables
@@ -107,7 +105,7 @@ Available mise tasks:
 
 ### "user cannot be mapped"
 
-Your UID is not in `/etc/subuid`. Fix:
+Your UID is not in `/etc/subuid`. Fix:w
 ```bash
 sudo usermod -v $(id -u)-$(($(id -u)+10000)) $(whoami)
 ```

@@ -8,8 +8,8 @@
 # COMPOSE_PROJECT_NAME = "magic"
 
 # Ironically docker compose is not composable (http://github.com/keithy/sprankle-pod)
-# postgres:gateway:selfservice:sandbox:browser:otel:tailscale:upgrade:vnstock-mcp
-# GOCLAW_MODULES = 'postgres:selfservice'
+# postgres+gateway+selfservice+sandbox+browser+otel+tailscale+upgrade+vnstock-mcp
+# GOCLAW_MODULES = 'postgres+selfservice'
 
 # Map to my keys managed in ~/.config/mise
 #

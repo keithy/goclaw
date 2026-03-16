@@ -14,16 +14,23 @@ as a Container. (Docker, Rootless Podman, or k8s).
 `mise` has an extensive registry of tools, and is able to install and manage
 different versions, even locally built binaries.
 
-Every time that the coder changes directory, `mise` recalculates `PATH` customizing
-the set of available tools to the versions specified.
+Every time that the coder changes directory, `mise` recalculates `env.PATH` customizing
+the set of available tools to the pinned versions specified for the project folder.
 
 ## Streamlining `docker-compose`
 
-The env.COMPOSE_FILE allows a series of `docker-compose` files to be combined.
+The 'env.COMPOSE_FILE' allows a series of `docker-compose` files to be combined.
 
 Every time that the coder changes directory, `mise` recalculates other 
 environment variables. In particular the coder's selection of `GOCLAW_MODULES`
 is transformed into `env.COMPOSE_FILE` used by `docker compose`.
+
+```bash
+# postgres+gateway+selfservice+sandbox+browser+otel+tailscale+upgrade+vnstock-mcp
+GOCLAW_MODULES = 'postgres+selfservice'
+
+
+```
 
 ## Managing Secrets
 
@@ -36,7 +43,7 @@ safe  distance from the code repository, or any active agents.
 [mise-en-place](https://mise.jdx.ai/) also provides the means to present
 an interactive picker for selection of useful tasks.
 
-'''bash
+```bash
 $> mise run
 Tasks
 Select a task to run
@@ -62,16 +69,29 @@ Select a task to run
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DOCKER_CMD` | `docker` | CLI command (`podman` or `docker`) |
-| `PODMAN_COMPOSE_WARNING_LOGS` | `false` | Suppress podman-compose warnings |
+| **Project** | | |
+| `COMPOSE_PROJECT_NAME` | `$(basename "$PWD")` | Prefix for container/volume names |
+| `PROJECT_UPSTREAM_URL` | `https://github.com/nextlevelbuilder/goclaw` | Upstream repository URL |
+| `PROJECT_ORIGIN_URL` | `${PROJECT_UPSTREAM_URL}` | Origin/fork repository URL |
+| `REPO_DIR` | `$PWD` | Repository directory |
+| **Build** | | |
+| `TARGETS` | `./cmd/goclaw` | Build targets (comma-separated) |
+| `OUTPUT_DIR` | `build-current` | Build output directory (positional arg) |
+| `AUTOROLLBACK_SECONDS` | `600` | Auto-rollback timer (10 min) |
+| **Workspace** | | |
+| `GOCLAW_HOME` | `~/.goclaw` | GoClaw data directory |
+| `GOCLAW_WORKSPACE` | `~/.goclaw/workspace` | PR tracking workspace |
+| **PR Tracking** | | |
+| `REPO_OWNER` | `nextlevelbuilder` | Upstream repository owner |
+| `REPO_NAME` | `goclaw` | Upstream repository name |
+| **Secrets** | | |
+| `GOCLAW_GATEWAY_TOKEN` | (required) | Gateway auth token (create via `./prepare-env.sh`) |
+| `GOCLAW_ENCRYPTION_KEY` | (required) | Encryption key (create via `./prepare-env.sh`) |
+| `GOCLAW_OPENROUTER_API_KEY` | - | OpenRouter API key |
+| `GOCLAW_GEMINI_API_KEY` | - | Google Gemini API key |
+| `GOCLAW_MINIMAX_API_KEY` | - | MiniMax API key |
+| **Modules** | | |
+| `GOCLAW_MODULES` | `postgres+selfservice` | Compose modules (`postgres+gateway+selfservice+sandbox+browser+otel+tailscale+upgrade:vnstock-mcp`) |
 
 
-## Troubleshooting
 
-
-### Socket permission denied
-
-Check socket exists and permissions:
-```bash
-ls -la /run/user/$UID/podman/podman.sock
-```
