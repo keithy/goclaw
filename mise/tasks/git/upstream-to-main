@@ -3,6 +3,8 @@
 #MISE raw=true
 set -euo pipefail
 
+cd "$MISE_PROJECT_ROOT"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Detect --dry-run mode

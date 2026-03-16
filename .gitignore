@@ -3,6 +3,8 @@ tests/integration/testdata/
 
 # Binary
 openclaw-go
+/build
+/bin
 
 # IDE
 .idea/
@@ -32,6 +34,7 @@ ui/web/.vite/
 .mcp.json
 tmp
 .claude/
+.crush
 
 deploy-*.sh
 

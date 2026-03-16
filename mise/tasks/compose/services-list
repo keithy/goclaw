@@ -2,6 +2,6 @@
 #MISE description="List compose services"
 set -euo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$MISE_PROJECT_ROOT"
 
 ${DOCKER_CMD:-docker} compose config --services

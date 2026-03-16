@@ -1,8 +1,17 @@
 #!/bin/bash
-#MISE description="Setup mise in a worktree branch (while mise is not merged into main)"
-# Usage: mise run mise-init
+#MISE description="Setup mise-data branch (while mise is not merged into main)"
+# Usage: mise run mise-setup-prior-to-merge
 
 set -euo pipefail
+
+cd "$MISE_PROJECT_ROOT"
+
+# Must run from repo root, not subdirectory
+if [[ ! -f "mise/tasks/mise-setup-prior-to-merge" ]]; then
+    echo "Error: This script must be run from the repository root (goclaw directory)"
+    echo "Run: cd /path/to/goclaw && mise run mise-setup-prior-to-merge"
+    exit 1
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_NAME="${PROJECT_NAME:-$(basename "$PWD")}"
@@ -20,7 +29,7 @@ if git rev-parse --is-inside-work-tree &>/dev/null && git rev-parse --show-tople
     fi
 fi
 
-# Create orphan branch for mise data
+# Create orphan branch for local data
 if git rev-parse --verify mise-data &>/dev/null; then
     echo "Branch mise-data already exists"
 else
@@ -125,5 +134,5 @@ else
 fi
 cd ..
 
-echo "Mise setup complete!"
+echo "Local-data setup complete!"
 echo "Run: mise run switch / mise run rollback / mise run confirm"

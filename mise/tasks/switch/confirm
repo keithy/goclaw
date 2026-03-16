@@ -1,0 +1,14 @@
+#!/bin/bash
+#MISE description="Confirm current version, cancel auto-rollback"
+set -euo pipefail
+
+cd "$MISE_PROJECT_ROOT"
+
+MARKER="${GOCLAW_HOME:-$HOME/.goclaw}/BUILD-PENDING-ROLLBACK"
+
+if [ -f "$MARKER" ]; then
+    rm -f "$MARKER"
+    echo "[CONFIRM] Auto-rollback cancelled. Version confirmed."
+else
+    echo "[CONFIRM] No pending rollback."
+fi

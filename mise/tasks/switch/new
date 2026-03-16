@@ -1,0 +1,47 @@
+#!/bin/bash
+#MISE description="Switch to next version (atomic: save, stop, switch, start)"
+set -euo pipefail
+
+cd "$MISE_PROJECT_ROOT"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# BEFORE stopping service: setup auto-rollback
+# If we die, rollback will restore after timeout
+echo "[SWITCH] Setting up auto-rollback (10min)..."
+"$SCRIPT_DIR/rollback" --prepare
+
+# NOW stop service (chat interface may die here)
+echo "[SWITCH] Stopping goclaw service..."
+if command -v goclaw &>/dev/null; then
+    goclaw service stop 2>/dev/null || true
+elif command -v goclaw-manager &>/dev/null; then
+    goclaw-manager service stop 2>/dev/null || true
+elif systemctl --user is-active goclaw &>/dev/null; then
+    systemctl --user stop goclaw
+else
+    echo "[SWITCH] Could not find service to stop"
+fi
+
+# Atomic switch
+echo "[SWITCH] Switching builds..."
+rm -rf build-prev
+mv build-current build-prev
+rm -rf build-current
+mv build-next build-current
+echo "[SWITCH] build-current -> build-prev"
+echo "[SWITCH] build-next -> build-current"
+
+# Start service
+echo "[SWITCH] Starting goclaw service..."
+if command -v goclaw &>/dev/null; then
+    goclaw service start 2>/dev/null || true
+elif command -v goclaw-manager &>/dev/null; then
+    goclaw-manager service start 2>/dev/null || true
+elif systemctl --user list-unit-files | grep -q goclaw; then
+    systemctl --user start goclaw
+else
+    echo "[SWITCH] Could not restart service. Start manually."
+fi
+
+echo "[SWITCH] Done. Run 'confirm' in 10min to cancel rollback."

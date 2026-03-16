@@ -2,7 +2,7 @@
 #MISE description="Enable podman environment"
 set -euo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$MISE_PROJECT_ROOT"
 
 if [ ! -f mise.podman.toml ]; then
    mv mise/podman-resources/mise.podman.toml mise.podman.toml 

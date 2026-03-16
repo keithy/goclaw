@@ -1,0 +1,9 @@
+#!/bin/bash
+#MISE description="Build goclaw binary (./build-next/goclaw)"
+set -e
+
+cd "$MISE_PROJECT_ROOT"
+
+# Delegate to build-current with different output dir
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+exec "$script_dir/build-current" build-next

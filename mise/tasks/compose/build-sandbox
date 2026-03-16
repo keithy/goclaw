@@ -2,6 +2,6 @@
 #MISE description="Build the goclaw-sandbox Docker image"
 set -euo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$MISE_PROJECT_ROOT"
 
 ${DOCKER_CMD:-docker} build -t goclaw-sandbox:bookworm-slim -f Dockerfile.sandbox .

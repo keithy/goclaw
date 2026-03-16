@@ -4,8 +4,10 @@ GoClaw supports both Docker and Rootless Podman, this is achieved
 via some environment variables and additional config files.
 This guide covers Podman-specific setup.
 
-Using [mise-en-place](https://mise.jdx.ai/) we have been able to streamline docker compose
-and make the podman option easily available.
+### 
+
+Using [mise-en-place](https://mise.jdx.ai/) to manage then environment
+helps streamline docker compose and make the podman option easily available.
 
 ## Podman vs Docker
 
@@ -21,11 +23,11 @@ and make the podman option easily available.
 ### 1. Enable Podman Environment
 
 ```bash
-mise run podman-enable
+mise run podman:enable
 ```
 
 This:
-- Moves `mise.podman.toml` → `./mise.podman.toml` (activates podman env)
+- Moves `mise/podman-resources/mise.podman.toml` → `./mise.podman.toml` (activates podman env)
 - Moves `miserc.toml` → `./.miserc.toml` (sets `MISE_ENV = "podman"`)
 - Creates symlinks in `~/.config/containers/` for podman config files (batteries included defaults)
 

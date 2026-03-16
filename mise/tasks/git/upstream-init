@@ -1,0 +1,14 @@
+#!/bin/bash
+#MISE description="Add upstream remote"
+set -e
+
+cd "$MISE_PROJECT_ROOT"
+
+UPSTREAM_URL="${1:-https://github.com/nextlevelbuilder/goclaw.git}"
+
+if git remote get-url upstream &>/dev/null; then
+    echo "upstream already configured: $(git remote get-url upstream)"
+else
+    git remote add upstream "$UPSTREAM_URL"
+    echo "Added upstream: $UPSTREAM_URL"
+fi

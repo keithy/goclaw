@@ -1,0 +1,37 @@
+#!/bin/bash
+# Git post-checkout hook to update mise config.local.toml
+# Usage: cp to .git/hooks/post-checkout and chmod +x
+
+# Args: $1=previous HEAD, $2=new HEAD, $3=1 for file checkout, 0 for branch checkout
+# Note: IS_FILE param behavior varies by git version, so we check branch name instead
+
+PREV_HEAD_REF="$1"
+NEW_HEAD_REF="$2"
+
+# Get current branch name
+NEW_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+# Get git repo root
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Check if mise config exists
+if [ -d "$REPO_ROOT/mise" ]; then
+    cd "$REPO_ROOT/mise"
+
+    # Check if branch has + suffix - if so, use base branch config
+    if [[ "$NEW_BRANCH" == *"+"* ]]; then
+        BASE_BRANCH="${NEW_BRANCH%%+*}"
+        if [ -f "$BASE_BRANCH.toml" ]; then
+            CONFIG_FILE="$BASE_BRANCH.toml"
+            echo "Branch has + suffix, using base: $BASE_BRANCH.toml"
+        fi
+    elif [ -f "$NEW_BRANCH.toml" ]; then
+        CONFIG_FILE="$NEW_BRANCH.toml"
+    fi
+
+    # Update symlink if we found a config
+    if [ -n "$CONFIG_FILE" ]; then
+        ln -sf "$CONFIG_FILE" config.local.toml
+        echo "Updated mise/config.local.toml -> $CONFIG_FILE"
+    fi
+fi

@@ -1,0 +1,57 @@
+#!/bin/bash
+#MISE description="Merge upstream PRs (from branch name or mise/main.toml)"
+set -e
+
+cd "$MISE_PROJECT_ROOT"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Get current branch name
+branch=$(git branch --show-current)
+echo "Building branch: $branch"
+
+prs=""
+
+# First: extract from branch name
+if [[ "$branch" == *"+"* ]]; then
+    branch_prs=$(echo "$branch" | sed 's/^main+//' | tr '+' ' ')
+    prs="$branch_prs"
+fi
+
+# Second: add user PRs from main.toml
+config_file="mise/main.toml"
+if [ -f "$config_file" ]; then
+    user_prs=$(grep -E '^\s*prs\s*=' "$config_file" | sed 's/.*prs\s*=\s*\[//;s/\]//;s/"//g' | tr ',' '\n' | xargs)
+    if [ -n "$user_prs" ]; then
+        if [ -n "$prs" ]; then
+            prs="$prs $user_prs"
+        else
+            prs="$user_prs"
+        fi
+    fi
+fi
+
+if [ -z "$prs" ]; then
+    echo "No PRs to merge (branch: $branch)"
+    exit 0
+fi
+
+echo "PRs to merge: $prs"
+
+# Merge upstream main first
+echo "Ensancing main is up to date..."
+git fetch upstream
+git merge upstream/main --no-edit || true
+
+# Fetch and merge each PR
+for pr in $prs; do
+    echo "Merging PR #$pr..."
+    # Fetch PR from upstream (GitHub stores PRs as refs/pull/<num>/head)
+    git fetch upstream "pull/$pr/head"
+    git merge " FETCH_HEAD" --no-edit -m "Merge PR #$pr" || {
+        echo "Conflict merging PR #$pr - resolve manually"
+        exit 1
+    }
+done
+
+echo "Build complete with PRs: $prs"

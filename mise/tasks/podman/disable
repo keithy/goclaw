@@ -1,0 +1,7 @@
+#!/bin/bash
+#MISE description="Disable podman environment"
+set -euo pipefail
+
+cd "$MISE_PROJECT_ROOT"
+
+rm -f .miserc.toml

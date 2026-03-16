@@ -1,0 +1,5 @@
+#!/bin/bash
+#MISE description="Build current branch with upstream PRs merged"
+
+cd "$MISE_PROJECT_ROOT"
+exec "../skills/self-build/scripts/build-branch.sh"
