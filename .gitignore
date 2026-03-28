@@ -82,3 +82,9 @@ ui/desktop/frontend/dist/index.html
 compose.d/*
 !compose.d/.gitkeep
 !compose.d/0*
+
+# Mise-en-place
+/.miserc.toml
+/mise.*.toml
+/mise
+/.mise
