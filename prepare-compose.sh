@@ -6,9 +6,16 @@ SCRIPT="${BASH_SOURCE[0]}"
 SCRIPT_DIR="$(cd "$(dirname "${SCRIPT}")" && pwd)"
 ENV_FILE="${GOCLAW_ENV_FILE:-$SCRIPT_DIR/.env}"
 
+loud() {
+  [[ "${QUIET:-false}" != true ]] && echo "$@"
+}
+
 # Show help
-if [[ "${1:-}" == "--help" ]]; then
-  echo "Usage: $SCRIPT"
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  echo "Usage: $SCRIPT [--quiet] [--skip-validation]"
+  echo ""
+  echo "  --quiet           Suppress normal output"
+  echo "  --skip-validation Skip docker compose config validation"
   echo ""
   echo "  Generates COMPOSE_FILE from compose.d/*.yml files (sorted)"
   echo "  Updates .env with the resulting COMPOSE_FILE value"
@@ -18,7 +25,15 @@ if [[ "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-# Check base exists
+# Parse flags
+SKIP_VALIDATION=false
+for arg in "$@"; do
+  case "$arg" in
+    --quiet) QUIET=true ;;
+    --skip-validation) SKIP_VALIDATION=true ;;
+  esac
+done
+
 [[ ! -f "docker-compose.yml" ]] && echo "docker-compose.yml not found" && exit 1
 
 # Build COMPOSE_FILE from compose.d files (sorted)
@@ -28,9 +43,11 @@ for f in compose.d/*.yml; do
 done
 
 # Validate compose files
-DOCKER_CMD="${DOCKER_CMD:-docker}"
-$DOCKER_CMD compose config > /dev/null 2>&1 || { echo "Compose config validation failed"; exit 1; }
-echo "Compose config valid"
+if [[ "$SKIP_VALIDATION" != true ]]; then
+  DOCKER_CMD="${DOCKER_CMD:-docker}"
+  $DOCKER_CMD compose config > /dev/null 2>&1 || { echo "Compose config validation failed"; exit 1; }
+  loud "Compose config valid"
+fi
 
 # Update .env with COMPOSE_FILE
 if [[ -f "$ENV_FILE" ]]; then
@@ -40,10 +57,10 @@ if [[ -f "$ENV_FILE" ]]; then
   else
     echo "COMPOSE_FILE='$COMPOSE_FILE'" >> "$ENV_FILE"
   fi
-  echo "COMPOSE_FILE updated in $ENV_FILE"
-  echo "  COMPOSE_FILE=$COMPOSE_FILE"
+  loud "COMPOSE_FILE updated in $ENV_FILE"
+  loud "  COMPOSE_FILE=$COMPOSE_FILE"
 else
-  echo "File not found: $ENV_FILE"
+  loud "File not found: $ENV_FILE"
 fi
 
-echo "(run '${SCRIPT} --help' for help)"
+loud "(run '${SCRIPT} --help' for help)"
