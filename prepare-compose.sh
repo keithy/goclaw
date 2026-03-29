@@ -8,6 +8,7 @@ ENV_FILE="${GOCLAW_ENV_FILE:-$SCRIPT_DIR/.env}"
 
 loud() {
   [[ "${QUIET:-false}" != true ]] && echo "$@"
+  true
 }
 
 # Show help
@@ -34,6 +35,8 @@ for arg in "$@"; do
   esac
 done
 
+cd "$SCRIPT_DIR" >/dev/null 2>&1
+
 [[ ! -f "docker-compose.yml" ]] && echo "docker-compose.yml not found" && exit 1
 
 # Build COMPOSE_FILE from compose.d files (sorted)
@@ -49,13 +52,19 @@ if [[ "$SKIP_VALIDATION" != true ]]; then
   loud "Compose config valid"
 fi
 
-# Update .env with COMPOSE_FILE
+# Update .env with COMPOSE_FILE and GOCLAW_DIR
 if [[ -f "$ENV_FILE" ]]; then
   if grep -q "^COMPOSE_FILE=" "$ENV_FILE" 2>/dev/null; then
     # Update existing COMPOSE_FILE line (well-known bash pattern)
     { rm -f "$ENV_FILE"; sed "s|^COMPOSE_FILE=.*|COMPOSE_FILE='$COMPOSE_FILE'|" > "$ENV_FILE"; } < "$ENV_FILE"
   else
     echo "COMPOSE_FILE='$COMPOSE_FILE'" >> "$ENV_FILE"
+  fi
+  if grep -q "^GOCLAW_DIR=" "$ENV_FILE" 2>/dev/null; then
+    # Update existing GOCLAW_DIR line (well-known bash pattern)
+    { rm -f "$ENV_FILE"; sed "s|^GOCLAW_DIR=.*|GOCLAW_DIR=$SCRIPT_DIR|" > "$ENV_FILE"; } < "$ENV_FILE"
+  else
+    echo "GOCLAW_DIR=$SCRIPT_DIR" >> "$ENV_FILE"
   fi
   loud "COMPOSE_FILE updated in $ENV_FILE"
   loud "  COMPOSE_FILE=$COMPOSE_FILE"
