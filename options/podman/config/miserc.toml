@@ -1,9 +1,9 @@
-# .miserc.toml = first config read by mise 
+# .miserc.toml = first config read by mise
 #
 # This config will load first IFF placed in the correct place.
-# This config is not read when in goclaw/mise/miserc.toml
+# This config is not read when in options/podman/config/miserc.toml
 #
-# To enable podman environment move to a parent directory
-# $> cp goclaw/mise/miserc.toml goclaw/.miserc.toml
+# To enable podman environment move to goclaw root:
+# $> cp options/podman/config/miserc.toml .miserc.toml
 
 env=["podman"]
