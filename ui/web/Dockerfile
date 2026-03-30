@@ -21,8 +21,8 @@ FROM nginx:1.27-alpine
 # Copy built assets
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config template (resolver set via NGINX_DNS_RESOLVER env var)
+COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
 
 EXPOSE 80
 
