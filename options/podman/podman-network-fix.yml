@@ -7,3 +7,9 @@
 networks:
   default:
     driver: bridge
+
+services:
+  goclaw-ui:
+    environment:
+      # Podman aardvark-dns listens on the bridge gateway IP
+      - NGINX_DNS_RESOLVER=10.89.1.1
