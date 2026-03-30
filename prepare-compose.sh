@@ -44,6 +44,7 @@ COMPOSE_FILE=""
 for f in compose.d/*.yml; do
   [[ -e "$f" ]] && COMPOSE_FILE="$COMPOSE_FILE${COMPOSE_FILE:+:}$f"
 done
+export COMPOSE_FILE
 
 # Validate compose files
 if [[ "$SKIP_VALIDATION" != true ]]; then
@@ -52,20 +53,20 @@ if [[ "$SKIP_VALIDATION" != true ]]; then
   loud "Compose config valid"
 fi
 
+# Update a key=value line in .env safely (via temp file)
+update_env() {
+  local key="$1" value="$2"
+  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    sed "s|^${key}=.*|${key}='${value}'|" "$ENV_FILE" > "$ENV_FILE.tmp" && mv "$ENV_FILE.tmp" "$ENV_FILE"
+  else
+    echo "${key}='${value}'" >> "$ENV_FILE"
+  fi
+}
+
 # Update .env with COMPOSE_FILE and GOCLAW_DIR
 if [[ -f "$ENV_FILE" ]]; then
-  if grep -q "^COMPOSE_FILE=" "$ENV_FILE" 2>/dev/null; then
-    # Update existing COMPOSE_FILE line (well-known bash pattern)
-    { rm -f "$ENV_FILE"; sed "s|^COMPOSE_FILE=.*|COMPOSE_FILE='$COMPOSE_FILE'|" > "$ENV_FILE"; } < "$ENV_FILE"
-  else
-    echo "COMPOSE_FILE='$COMPOSE_FILE'" >> "$ENV_FILE"
-  fi
-  if grep -q "^GOCLAW_DIR=" "$ENV_FILE" 2>/dev/null; then
-    # Update existing GOCLAW_DIR line (well-known bash pattern)
-    { rm -f "$ENV_FILE"; sed "s|^GOCLAW_DIR=.*|GOCLAW_DIR=$SCRIPT_DIR|" > "$ENV_FILE"; } < "$ENV_FILE"
-  else
-    echo "GOCLAW_DIR=$SCRIPT_DIR" >> "$ENV_FILE"
-  fi
+  update_env "COMPOSE_FILE" "$COMPOSE_FILE"
+  update_env "GOCLAW_DIR" "$SCRIPT_DIR"
   loud "COMPOSE_FILE updated in $ENV_FILE"
   loud "  COMPOSE_FILE=$COMPOSE_FILE"
 else
