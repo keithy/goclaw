@@ -22,7 +22,8 @@ FROM nginx:1.27-alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx config template (resolver set via NGINX_DNS_RESOLVER env var)
-COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
+# Must be in /etc/nginx/templates/ for the nginx entrypoint to process it
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
 
