@@ -1,0 +1,24 @@
+# mise.podman.toml = podman environment settings
+#
+# Place in /code/goclaw alongside .env
+# mise auto-loads .env via env_file = ".env" setting
+
+# Enable via:
+# <parent>/goclaw/.miserc.toml 
+# [env] = "podman"
+
+[settings]
+env_file = ".env"
+
+[shell_alias]
+docker = "podman"
+
+[env]
+PODMAN_COMPOSE_WARNING_LOGS = "false"
+
+# for scripts
+DOCKER_CMD="podman"
+
+# needed for healthcheck support
+BUILDAH_FORMAT = "docker"
+
