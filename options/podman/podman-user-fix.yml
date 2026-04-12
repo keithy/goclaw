@@ -7,9 +7,21 @@
 # where container internal UIDs don't map correctly to host.
 
 services:
-  goclaw:
-    user: "0:0"
+
+#  goclaw:
+#    user: "0:0"
+#    entrypoint: ["/app/podman-entrypoint.sh"]
+#    volumes:
+#      - ${GOCLAW_DIR:-.}/options/podman/podman-entrypoint.sh:/app/podman-entrypoint.sh:ro
+
   goclaw-ui:
     user: "0:0"
-  upgrade:
-    user: "0:0"
+
+#  upgrade:
+#    user: "0:0"
+
+# postgres: 
+#   podman with keep-id runs the container with the rootless user/group
+#   e.g. auto:coder 1003:1004, switch to postgres user 999 only occurs
+#   when running as root. podman would map 999 to some high number.
+#   Therefore the default behaviour, with keep-id is the best option.

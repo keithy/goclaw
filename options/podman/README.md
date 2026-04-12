@@ -1,14 +1,12 @@
 # Podman Setup for GoClaw
 
-Podman rootless server configuration and networking fixes.
+## Podman Configuration
 
-## Quick Start
+### Quick Start
 
 ```bash
 ./setup.sh
 ```
-
-## What We Learned
 
 ### DNS Resolution Issue
 
@@ -36,12 +34,12 @@ podman exec goclaw-ui cat /etc/resolv.conf
 
 Common pattern: `10.89.0.1` or `10.89.1.1` (third octet may vary)
 
-## Files
+### Files
 
 | File | Purpose |
 |------|---------|
 | `setup.sh` | Copies configs to `~/.config/containers/` |
-| `config/containers.conf` | Rootless podman config (userns, group_add, umask) |
+| `config/containers.conf` | data at /srv (userns=keep-id, group_add) |
 | `config/storage.conf` | Overlay storage driver at `/opt/storage` |
 | `config/registries.conf` | Add docker.io as default search |
 | `config/mise.podman.toml` | Mise podman environment settings |
@@ -49,44 +47,73 @@ Common pattern: `10.89.0.1` or `10.89.1.1` (third octet may vary)
 | `podman-network-fix.yml` | Compose overlay for network settings |
 | `podman-user-fix.yml` | User namespace fixes |
 
-## Usage
+### Usage
 
-### With Docker Compose
-```bash
-# Include the network fix overlay
-docker compose -f docker-compose.yml \
-  -f docker-compose.postgres.yml \
-  -f options/podman/podman-network-fix.yml \
-  up -d
-```
+The setup script copies compose overlays to `compose.d/`, and `prepare-compose.sh` generates the `COMPOSE_FILE` from them:
 
-### With setup.sh
 ```bash
 cd options/podman
-./setup.sh
-# Then use compose normally - setup.sh copies overlays to compose.d/
-# ./prepare-compose.sh      - Compiles COMPOSE_FILE from compose.d/*.yml
+./setup.sh                 # copy yml files to compose.d/
+cd ../..
+./prepare-compose.sh      # build COMPOSE_FILE from compose.d/*.yml
+podman compose up -d
 ```
 
-## Troubleshooting
+### Troubleshooting
 
-### nginx fails to resolve goclaw
+#### nginx fails to resolve goclaw
 Check logs: `podman logs goclaw-ui`
 Verify resolver: `podman exec goclaw-ui nginx -T | grep resolver`
 
-### Can't access volume data
+#### Can't access volume data
 Podman rootless uses overlayfs. Files may be owned by root inside container but appear as numeric UID outside.
 Use `podman unshare` to access or check with `podman exec stat /path`
 
-### Database permissions
+#### Database permissions
 Postgres runs as UID 70 inside container. With `keep-id` in containers.conf, using `0:0` inside the container maps to the external owner:
 ```bash
 # Fix ownership (0:0 maps to external UID via keep-id)
 podman unshare chown -R 0:0 /srv/your-volume
 ```
 
+---
+
+## Self-Building Container
+
+A container that builds its own layers. No CI/CD pipeline needed for adding modules.
+
+See [SELF_BUILDING.md](./SELF_BUILDING.md) for full documentation.
+
+### Quick Overview
+
+The container contains buildah and builds its own layers. An agent can:
+
+```bash
+make ctr-python           # add python module
+make ctr-commit-next      # commit as :v2
+```
+
+### Why
+
+- **No external build system** for module additions
+- **No Dockerfile changes** to add packages
+- **Container evolves** as agent discovers needs
+- **Blue-green** without registry complexity
+
+### Files
+
+```
+goclaw/
+├── Makefile               # modular build system (included in container)
+├── entrypoint.sh          # shell entrypoint
+└── entrypoint.execline    # execline entrypoint (optional)
+```
+
+---
+
 ## See Also
 
 - [Podman Networking](https://docs.podman.io/en/latest/markdown/podman.1.html#network)
 - [aardvark-dns](https://github.com/containers/aardvark-dns)
 - [Nginx Resolver](https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver)
+- [Self-Building Container](./SELF_BUILDING.md)

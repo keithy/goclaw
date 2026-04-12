@@ -20,7 +20,7 @@ pkg-helper
 app
 browser-poc
 openclaw-go
-goclaw
+!options/podman/goclaw/
 /config.json
 prompt.md
 *.bk.*
