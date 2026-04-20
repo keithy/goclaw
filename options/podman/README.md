@@ -1,14 +1,12 @@
 # Podman Setup for GoClaw
 
-Podman rootless server configuration and networking fixes.
+## Podman Configuration
 
-## Quick Start
+### Quick Start
 
 ```bash
 ./setup.sh
 ```
-
-## What We Learned
 
 ### DNS Resolution Issue
 
@@ -36,57 +34,80 @@ podman exec goclaw-ui cat /etc/resolv.conf
 
 Common pattern: `10.89.0.1` or `10.89.1.1` (third octet may vary)
 
-## Files
+### Files
 
 | File | Purpose |
 |------|---------|
-| `setup.sh` | Copies configs to `~/.config/containers/` |
-| `config/containers.conf` | Rootless podman config (userns, group_add, umask) |
-| `config/storage.conf` | Overlay storage driver at `/opt/storage` |
-| `config/registries.conf` | Add docker.io as default search |
-| `config/mise.podman.toml` | Mise podman environment settings |
-| `config/miserc.toml` | Mise config activation |
+| `setup.sh` | Copies `config/containers/` to `~/.config/containers/` |
+| `config/containers/` | Podman config directory |
+| `config/containers/containers.conf` | userns=keep-id, group_add |
+| `config/containers/storage.conf` | Overlay storage driver at `/opt/storage` |
+| `config/containers/registries.conf` | Add docker.io as default search |
+| `config/containers/oci-hook.d/poststop` | Auto-commit on exit 42 |
 | `podman-network-fix.yml` | Compose overlay for network settings |
 | `podman-user-fix.yml` | User namespace fixes |
 
-## Usage
+### Usage
 
-### With Docker Compose
-```bash
-# Include the network fix overlay
-docker compose -f docker-compose.yml \
-  -f docker-compose.postgres.yml \
-  -f options/podman/podman-network-fix.yml \
-  up -d
-```
+The setup script copies compose overlays to `compose.d/`, and `prepare-compose.sh` generates the `COMPOSE_FILE` from them:
 
-### With setup.sh
 ```bash
 cd options/podman
-./setup.sh
-# Then use compose normally - setup.sh copies overlays to compose.d/
-# ./prepare-compose.sh      - Compiles COMPOSE_FILE from compose.d/*.yml
+./setup.sh                 # copy yml files to compose.d/
+cd ../..
+./prepare-compose.sh      # build COMPOSE_FILE from compose.d/*.yml
+podman compose up -d
 ```
 
-## Troubleshooting
+### Troubleshooting
 
-### nginx fails to resolve goclaw
+#### nginx fails to resolve goclaw
 Check logs: `podman logs goclaw-ui`
 Verify resolver: `podman exec goclaw-ui nginx -T | grep resolver`
 
-### Can't access volume data
+#### Can't access volume data
 Podman rootless uses overlayfs. Files may be owned by root inside container but appear as numeric UID outside.
 Use `podman unshare` to access or check with `podman exec stat /path`
 
-### Database permissions
+#### Database permissions
 Postgres runs as UID 70 inside container. With `keep-id` in containers.conf, using `0:0` inside the container maps to the external owner:
 ```bash
 # Fix ownership (0:0 maps to external UID via keep-id)
 podman unshare chown -R 0:0 /srv/your-volume
 ```
 
+### OCI Poststop Hook (Auto-Commit)
+
+Container exits with code **42** to trigger auto-commit. The poststop hook commits the running container's filesystem to an image.
+
+**How it works:**
+1. Agent runs inside container, makes changes
+2. Agent exits with code 42
+3. Container stops, hook fires
+4. Hook runs `podman commit` — container's changes are saved
+5. Start container again — now has the new layers
+
+**Hook location:** `config/containers/oci-hook.d/poststop`
+
+**Usage:**
+```bash
+# Inside container - when ready to save state
+exit 42
+
+# On host - container is now committed
+podman images | grep goclaw
+```
+
+**Why exit 42?**
+- Normal exit (0) = just stop
+- Error exit (1) = something went wrong
+- 42 = "save my work" signal
+
+---
+
 ## See Also
 
 - [Podman Networking](https://docs.podman.io/en/latest/markdown/podman.1.html#network)
 - [aardvark-dns](https://github.com/containers/aardvark-dns)
 - [Nginx Resolver](https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver)
+- [Self-Building Container](./SELF_BUILDING.md)
