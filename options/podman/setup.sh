@@ -5,7 +5,7 @@ set -euo pipefail
 
 SCRIPT="${BASH_SOURCE[0]}"
 SCRIPT_DIR="$(cd "$(dirname "${SCRIPT}")" && pwd)"
-SOURCE_DIR="$SCRIPT_DIR/config"
+SOURCE_DIR="$SCRIPT_DIR/config/containers"
 GOCLAW_DIR="$SCRIPT_DIR/../.."
 
 # Colors
@@ -104,24 +104,11 @@ echo ""
 echo -e "${BLUE}Files to be created:${NC}"
 echo ""
 
-echo -e "${GREEN}containers.conf${NC} (main config - 35KB, with detailed comments)"
-echo -e "  ${YELLOW}→${NC} $CONFIG_DIR/containers.conf"
-echo -e "  • Keeps your UID same inside containers (userns = keep-id)"
-echo -e "  • Inherits host groups like 'coder' (group_add = keep-groups)"
-echo -e "  • Allows ICMP ping without root (default_sysctls)"
-echo -e "  • Sets umask for container file permissions"
-echo -e "  • Volume path: /srv (external filesystem mountpoint, e.g. ZFS)"
+echo -e "${BLUE}Files to be copied:${NC}"
 echo ""
-
-echo -e "${GREEN}registries.conf${NC} (search config - 1 line)"
-echo -e "  ${YELLOW}→${NC} $CONFIG_DIR/registries.conf"
-echo -e "  • Adds docker.io as default search registry"
-echo ""
-
-echo -e "${GREEN}storage.conf${NC} (storage config - 3 lines)"
-echo -e "  ${YELLOW}→${NC} $CONFIG_DIR/storage.conf"
-echo -e "  • Uses overlay driver"
-echo -e "  • Storage path: /opt/storage (podman internal data)"
+echo -e "config/containers/ → $CONFIG_DIR/"
+echo -e "  • containers.conf, registries.conf, storage.conf"
+echo -e "  • oci-hook.d/post-stop (commit on exit 42)"
 echo ""
 
 # ─── Existing files warning ───────────────────────────────────────
@@ -145,22 +132,7 @@ fi
 echo ""
 echo -e "${BLUE}─── Installing configs ────────────────────────────────────${NC}"
 
-for conf in containers.conf registries.conf storage.conf; do
-  src="$SOURCE_DIR/$conf"
-  dest="$CONFIG_DIR/$conf"
-
-  if [[ ! -f "$src" ]]; then
-    echo -e "  ${RED}✗ Source not found: $src${NC}"
-    continue
-  fi
-
-  if [[ -f "$dest" ]]; then
-    echo -e "  ${YELLOW}— Skipped (exists): $conf${NC}"
-  else
-    cp "$src" "$dest"
-    echo -e "  ${GREEN}✓ Copied: $conf${NC}"
-  fi
-done
+cp -r "$SOURCE_DIR/containers/." "$CONFIG_DIR/"
 
 # ─── Copy yml files to compose.d ─────────────────────────────────
 echo ""
