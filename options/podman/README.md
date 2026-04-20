@@ -38,12 +38,12 @@ Common pattern: `10.89.0.1` or `10.89.1.1` (third octet may vary)
 
 | File | Purpose |
 |------|---------|
-| `setup.sh` | Copies configs to `~/.config/containers/` |
-| `config/containers.conf` | data at /srv (userns=keep-id, group_add) |
-| `config/storage.conf` | Overlay storage driver at `/opt/storage` |
-| `config/registries.conf` | Add docker.io as default search |
-| `config/mise.podman.toml` | Mise podman environment settings |
-| `config/miserc.toml` | Mise config activation |
+| `setup.sh` | Copies `config/containers/` to `~/.config/containers/` |
+| `config/containers/` | Podman config directory |
+| `config/containers/containers.conf` | userns=keep-id, group_add |
+| `config/containers/storage.conf` | Overlay storage driver at `/opt/storage` |
+| `config/containers/registries.conf` | Add docker.io as default search |
+| `config/containers/oci-hook.d/poststop` | Auto-commit on exit 42 |
 | `podman-network-fix.yml` | Compose overlay for network settings |
 | `podman-user-fix.yml` | User namespace fixes |
 
@@ -76,38 +76,32 @@ Postgres runs as UID 70 inside container. With `keep-id` in containers.conf, usi
 podman unshare chown -R 0:0 /srv/your-volume
 ```
 
----
+### OCI Poststop Hook (Auto-Commit)
 
-## Self-Building Container
+Container exits with code **42** to trigger auto-commit. The poststop hook commits the running container's filesystem to an image.
 
-A container that builds its own layers. No CI/CD pipeline needed for adding modules.
+**How it works:**
+1. Agent runs inside container, makes changes
+2. Agent exits with code 42
+3. Container stops, hook fires
+4. Hook runs `podman commit` — container's changes are saved
+5. Start container again — now has the new layers
 
-See [SELF_BUILDING.md](./SELF_BUILDING.md) for full documentation.
+**Hook location:** `config/containers/oci-hook.d/poststop`
 
-### Quick Overview
-
-The container contains buildah and builds its own layers. An agent can:
-
+**Usage:**
 ```bash
-make ctr-python           # add python module
-make ctr-commit-next      # commit as :v2
+# Inside container - when ready to save state
+exit 42
+
+# On host - container is now committed
+podman images | grep goclaw
 ```
 
-### Why
-
-- **No external build system** for module additions
-- **No Dockerfile changes** to add packages
-- **Container evolves** as agent discovers needs
-- **Blue-green** without registry complexity
-
-### Files
-
-```
-goclaw/
-├── Makefile               # modular build system (included in container)
-├── entrypoint.sh          # shell entrypoint
-└── entrypoint.execline    # execline entrypoint (optional)
-```
+**Why exit 42?**
+- Normal exit (0) = just stop
+- Error exit (1) = something went wrong
+- 42 = "save my work" signal
 
 ---
 
