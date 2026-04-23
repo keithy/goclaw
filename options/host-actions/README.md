@@ -54,6 +54,16 @@ systemctl --user daemon-reload
 systemctl --user enable --now host-action.path
 ```
 
+## Why execline
+
+execline provides safer script execution than shell:
+
+- **No shell interpolation** — variables use `import -env` or `withenv`, not `$VAR`
+- **No command chaining** — uses `&&` `||` `;` builtins, not shell operators
+- **Builtin-only control flow** - `if`, `try`, `background`, etc. are builtins
+- **No shell escape** — `execlineb "$file"` not `-c "$(cat)"`, prevents injection
+- **Shebang honored** — action scripts can use any interpreter (`#!/bin/sh`, `#!/bin/execlineb`)
+
 ## Security model
 
 ### Environment variables
