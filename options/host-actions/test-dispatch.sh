@@ -27,6 +27,20 @@ run_dispatch() {
         sh "$DISPATCH" /tmp/test-dispatch >/dev/null 2>&1 || true
 }
 
+check_json_status() {
+    file="$1"
+    expected="$2"
+    actual="$(grep -o '"status": *"[^"]*"' "$file" | cut -d'"' -f4)"
+    [ "$actual" = "$expected" ]
+}
+
+check_json_request() {
+    file="$1"
+    expected="$2"
+    actual="$(grep -o '"request": *"[^"]*"' "$file" | cut -d'"' -f4)"
+    [ "$actual" = "$expected" ]
+}
+
 echo "Testing host-actions dispatch hardening..."
 echo ""
 
@@ -35,11 +49,10 @@ trap cleanup EXIT
 
 # Basic execution test
 echo "--- Basic execution ---"
-HOST_ACTIONS_QUEUE_DIR=/tmp/test-dispatch/queue \
-    HOST_ACTIONS_WHITELIST= HOST_ACTIONS_PATH= HOST_ACTIONS_BLACKLIST= HOST_ACTIONS_SCRIPTS= \
-    "$HOST_ACTION" restart mycontainer
+echo "echo hello from dispatch" > /tmp/test-dispatch/queue/100-test
 run_dispatch
-if [ "$(ls -A /tmp/test-dispatch/done 2>/dev/null)" ]; then
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_status "$RESULT_FILE" "success"; then
     echo "✓ PASS: basic dispatch works"
     PASS=$((PASS+1))
 else
@@ -50,38 +63,41 @@ rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
 
 echo ""
 echo "--- Whitelist tests ---"
-HOST_ACTIONS_QUEUE_DIR=/tmp/test-dispatch/queue \
-    HOST_ACTIONS_WHITELIST="commit restart" HOST_ACTIONS_PATH= HOST_ACTIONS_BLACKLIST= HOST_ACTIONS_SCRIPTS= \
-    "$HOST_ACTION" commit mycontainer
-run_dispatch
-if [ "$(ls -A /tmp/test-dispatch/done 2>/dev/null)" ]; then
-    echo "✓ PASS: whitelist allows 'commit'"
+echo "echo whitelist test" > /tmp/test-dispatch/queue/100-test
+HOST_ACTIONS_WHITELIST="echo" HOST_ACTIONS_PATH= HOST_ACTIONS_BLACKLIST= HOST_ACTIONS_SCRIPTS= \
+    run_dispatch
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_status "$RESULT_FILE" "success"; then
+    echo "✓ PASS: whitelist allows 'echo'"
     PASS=$((PASS+1))
 else
-    echo "✗ FAIL: whitelist should allow 'commit'"
+    echo "✗ FAIL: whitelist should allow 'echo'"
     FAIL=$((FAIL+1))
 fi
 rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
 
-# For tests with special chars, write directly
+# Whitelist reject test
 echo "echo x" > /tmp/test-dispatch/queue/100-test
 HOST_ACTIONS_WHITELIST="commit restart" HOST_ACTIONS_PATH= HOST_ACTIONS_BLACKLIST= HOST_ACTIONS_SCRIPTS= \
     run_dispatch
-if [ "$(ls -A /tmp/test-dispatch/rejected 2>/dev/null)" ]; then
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_status "$RESULT_FILE" "rejected" && \
+   grep -q "HOST_ACTIONS_WHITELIST" "$RESULT_FILE"; then
     echo "✓ PASS: whitelist rejects 'echo'"
     PASS=$((PASS+1))
 else
     echo "✗ FAIL: whitelist should reject 'echo'"
     FAIL=$((FAIL+1))
 fi
-rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/* /tmp/test-dispatch/rejected/*
+rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
 
 echo ""
 echo "--- Blacklist tests ---"
 echo "echo x" > /tmp/test-dispatch/queue/100-test
 HOST_ACTIONS_BLACKLIST='\{' HOST_ACTIONS_WHITELIST= HOST_ACTIONS_PATH= HOST_ACTIONS_SCRIPTS= \
     run_dispatch
-if [ "$(ls -A /tmp/test-dispatch/done 2>/dev/null)" ]; then
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_status "$RESULT_FILE" "success"; then
     echo "✓ PASS: blacklist allows 'echo' (no { in content)"
     PASS=$((PASS+1))
 else
@@ -93,21 +109,24 @@ rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
 echo "echo { hello" > /tmp/test-dispatch/queue/100-test
 HOST_ACTIONS_BLACKLIST='\{' HOST_ACTIONS_WHITELIST= HOST_ACTIONS_PATH= HOST_ACTIONS_SCRIPTS= \
     run_dispatch
-if [ "$(ls -A /tmp/test-dispatch/rejected 2>/dev/null)" ]; then
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_status "$RESULT_FILE" "rejected" && \
+   grep -q "HOST_ACTIONS_BLACKLIST" "$RESULT_FILE"; then
     echo "✓ PASS: blacklist rejects '{'"
     PASS=$((PASS+1))
 else
     echo "✗ FAIL: blacklist should reject '{'"
     FAIL=$((FAIL+1))
 fi
-rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/* /tmp/test-dispatch/rejected/*
+rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
 
 echo ""
 echo "--- Script-only mode tests ---"
 echo "echo x" > /tmp/test-dispatch/queue/100-test
 HOST_ACTIONS_SCRIPTS="false" HOST_ACTIONS_WHITELIST= HOST_ACTIONS_PATH= HOST_ACTIONS_BLACKLIST= \
     run_dispatch
-if [ "$(ls -A /tmp/test-dispatch/done 2>/dev/null)" ]; then
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_status "$RESULT_FILE" "success"; then
     echo "✓ PASS: script-only mode allows 'echo' (no { in content)"
     PASS=$((PASS+1))
 else
@@ -119,14 +138,51 @@ rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
 echo "echo { hello" > /tmp/test-dispatch/queue/100-test
 HOST_ACTIONS_SCRIPTS="false" HOST_ACTIONS_WHITELIST= HOST_ACTIONS_PATH= HOST_ACTIONS_BLACKLIST= \
     run_dispatch
-if [ "$(ls -A /tmp/test-dispatch/rejected 2>/dev/null)" ]; then
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_status "$RESULT_FILE" "rejected" && \
+   grep -q "HOST_ACTIONS_SCRIPTS" "$RESULT_FILE"; then
     echo "✓ PASS: script-only mode rejects '{'"
     PASS=$((PASS+1))
 else
     echo "✗ FAIL: script-only mode should reject '{'"
     FAIL=$((FAIL+1))
 fi
-rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/* /tmp/test-dispatch/rejected/*
+rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
+
+echo ""
+echo "--- JSON response format tests ---"
+echo "restart mycontainer" > /tmp/test-dispatch/queue/100-test
+run_dispatch
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && \
+   grep -q '"id":' "$RESULT_FILE" && \
+   grep -q '"request":' "$RESULT_FILE" && \
+   grep -q '"status":' "$RESULT_FILE" && \
+   grep -q '"exit_code":' "$RESULT_FILE" && \
+   grep -q '"stdout":' "$RESULT_FILE" && \
+   grep -q '"stderr":' "$RESULT_FILE" && \
+   grep -q '"duration_ms":' "$RESULT_FILE" && \
+   grep -q '"timestamp":' "$RESULT_FILE"; then
+    echo "✓ PASS: JSON response has all required fields"
+    PASS=$((PASS+1))
+else
+    echo "✗ FAIL: JSON response missing fields"
+    FAIL=$((FAIL+1))
+fi
+rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
+
+# Test request field is preserved
+echo "echo hello" > /tmp/test-dispatch/queue/100-test
+run_dispatch
+RESULT_FILE="$(ls /tmp/test-dispatch/done/*.json 2>/dev/null)"
+if [ -n "$RESULT_FILE" ] && check_json_request "$RESULT_FILE" "echo hello"; then
+    echo "✓ PASS: request field preserved in response"
+    PASS=$((PASS+1))
+else
+    echo "✗ FAIL: request field not preserved"
+    FAIL=$((FAIL+1))
+fi
+rm -f /tmp/test-dispatch/queue/* /tmp/test-dispatch/done/*
 
 echo ""
 echo "--- host-action tests ---"
