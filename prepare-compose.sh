@@ -172,12 +172,10 @@ do_check() {
 
 # Open editor, then apply
 do_edit() {
-  if [[ ! -f "$ENV_COMPOSE" ]]; then
-    loud "Creating $ENV_COMPOSE..."
-    local current
-    current=$(read_compose_file)
-    do_generate "$current" > "$ENV_COMPOSE"
-  fi
+  loud "Regenerating $ENV_COMPOSE..."
+  local current
+  current=$(read_compose_file)
+  do_generate "$current" > "$ENV_COMPOSE"
 
   if ! "$EDITOR" "$ENV_COMPOSE"; then
     echo "Editor failed (EDITOR=$EDITOR)"
