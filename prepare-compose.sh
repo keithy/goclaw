@@ -190,12 +190,13 @@ do_edit() {
 # Show help
 show_help() {
   cat << EOF
-Usage: $SCRIPT [--quiet] [--generate] [--update] [--edit] [--check]
+Usage: $SCRIPT [--quiet] [--generate] [--update] [--edit] [--check] [--file <file>]
 
   --generate   Create/replace .env-compose from available compose files
   --edit        Open .env-compose in \$EDITOR, then apply to .env
   --update      Apply current .env-compose to .env
   --check       Validate compose config using \$DOCKER_CMD (default: docker)
+  --file <f>    Copy <f> to .env-compose (-f also works)
   --quiet       Suppress normal output
 
   Finds all compose *.yml files under this directory.
@@ -215,21 +216,40 @@ GENERATE=false
 UPDATE=false
 EDIT=false
 CHECK=false
+NEXT_FILE=""
 
 for arg in "$@"; do
-  case "$arg" in
-    --quiet) QUIET=true ;;
-    --generate) GENERATE=true ;;
-    --update) UPDATE=true ;;
-    --edit) EDIT=true ;;
-    --check) CHECK=true ;;
-    --help|-h) show_help ;;
-  esac
+  if [[ "$NEXT_FILE" ]]; then
+    cp "$arg" "$ENV_COMPOSE"
+    echo "Copied $arg to $ENV_COMPOSE"
+    NEXT_FILE=""
+    UPDATE=true
+    CHECK=true
+  else
+    case "$arg" in
+      --quiet) QUIET=true ;;
+      --generate) GENERATE=true ;;
+      --update) UPDATE=true ;;
+      --edit) EDIT=true ;;
+      --check) CHECK=true ;;
+      --help|-h) show_help ;;
+      --file|-f) NEXT_FILE="yes" ;;
+      --file=*|-f=*)
+        src="${arg#--file=}"
+        src="${src#-f=}"
+        cp "$src" "$ENV_COMPOSE"
+        echo "Copied $src to $ENV_COMPOSE"
+        UPDATE=true
+        CHECK=true
+        ;;
+      *) echo "Unknown: $arg" ;;
+    esac
+  fi
 done
 
 cd "$SCRIPT_DIR" >/dev/null 2>&1
 
-# No args = help
+# No args = help (unless FILE was set, which auto-sets UPDATE/CHECK)
 if [[ "$GENERATE" == false && "$UPDATE" == false && "$EDIT" == false && "$CHECK" == false ]]; then
   show_help
 fi
