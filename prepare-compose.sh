@@ -172,10 +172,12 @@ do_check() {
 
 # Open editor, then apply
 do_edit() {
-  loud "Regenerating $ENV_COMPOSE..."
-  local current
-  current=$(read_compose_file)
-  do_generate "$current" > "$ENV_COMPOSE"
+  if [[ ! -f "$ENV_COMPOSE" ]]; then
+    loud "Regenerating $ENV_COMPOSE..."
+    local current
+    current=$(read_compose_file)
+    do_generate "$current" > "$ENV_COMPOSE"
+  fi
 
   if ! "$EDITOR" "$ENV_COMPOSE"; then
     echo "Editor failed (EDITOR=$EDITOR)"
@@ -183,6 +185,7 @@ do_edit() {
   fi
 
   do_update
+  do_check
 }
 
 # Show help
@@ -252,10 +255,6 @@ if [[ "$GENERATE" == false && "$UPDATE" == false && "$EDIT" == false && "$CHECK"
   show_help
 fi
 
-if [[ "$CHECK" == true ]]; then
-  do_check
-fi
-
 if [[ "$GENERATE" == true ]]; then
   loud "Generating $ENV_COMPOSE..."
   current=$(read_compose_file)
@@ -269,4 +268,8 @@ fi
 
 if [[ "$UPDATE" == true ]]; then
   do_update
+fi
+
+if [[ "$CHECK" == true ]]; then
+  do_check
 fi
