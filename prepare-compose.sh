@@ -46,20 +46,20 @@ read_compose_file() {
   fi
 }
 
+# Update a key=value line in .env safely
+update_env() {
+  local key="$1" value="$2"
+  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    sed "s|^${key}=.*|${key}='${value}'|" "$ENV_FILE" > "$ENV_FILE.tmp" && mv "$ENV_FILE.tmp" "$ENV_FILE"
+  else
+    echo "${key}='${value}'" >> "$ENV_FILE"
+  fi
+}
+
 # Write COMPOSE_FILE to .env
 write_compose_file() {
-  local value="$1"
-  if [[ -f "$ENV_FILE" ]]; then
-    if grep -q "^COMPOSE_FILE=" "$ENV_FILE" 2>/dev/null; then
-      sed "s|^COMPOSE_FILE=.*|COMPOSE_FILE='$value'|" "$ENV_FILE" > "$ENV_FILE.tmp" && mv "$ENV_FILE.tmp" "$ENV_FILE"
-    else
-      echo "COMPOSE_FILE='$value'" >> "$ENV_FILE"
-    fi
-    loud "COMPOSE_FILE updated: $value"
-  else
-    echo "COMPOSE_FILE='$value'" > "$ENV_FILE"
-    loud "COMPOSE_FILE created: $value"
-  fi
+  update_env "COMPOSE_FILE" "$1"
+  loud "COMPOSE_FILE='$1'"
 }
 
 # Generate .env-compose from available files and current selection
