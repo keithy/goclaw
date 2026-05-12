@@ -141,7 +141,7 @@ echo -e "${BLUE}─── Installing Compose Overlays ────────�
 compose_d="$GOCLAW_DIR/compose.d"
 mkdir -p "$compose_d"
 
-for yml in podman-user-fix.yml podman-network-fix.yml; do
+for yml in podman+user-fix.yml podman+network-fix.yml; do
   src="$SCRIPT_DIR/$yml"
   dest="$compose_d/$yml"
 
