@@ -1,0 +1,15 @@
+# Podman DNS fix overlay — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.selfservice.yml -f options/podman/podman-network-fix.yml up -d
+#
+# Sets NGINX_DNS_RESOLVER to podman's gateway IP (aardvark-dns).
+# Find it with: podman network inspect auto_default | grep gateway
+
+networks:
+  default:
+    driver: bridge
+
+services:
+  goclaw-ui:
+    environment:
+      # Podman aardvark-dns listens on the bridge gateway IP
+      - NGINX_DNS_RESOLVER=10.89.1.1
