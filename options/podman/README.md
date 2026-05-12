@@ -44,18 +44,18 @@ Common pattern: `10.89.0.1` or `10.89.1.1` (third octet may vary)
 | `config/containers/storage.conf` | Overlay storage driver at `/opt/storage` |
 | `config/containers/registries.conf` | Add docker.io as default search |
 | `config/containers/oci-hook.d/poststop` | Auto-commit on exit 42 |
-| `podman-network-fix.yml` | Compose overlay for network settings |
-| `podman-user-fix.yml` | User namespace fixes |
+| `podman+network-fix.yml` | Compose overlay for network settings |
+| `podman+user-fix.yml` | User namespace fixes |
 
 ### Usage
 
-The setup script copies compose overlays to `compose.d/`, and `prepare-compose.sh` generates the `COMPOSE_FILE` from them:
+The setup script recommends overlay paths. Add them to your COMPOSE_FILE:
 
 ```bash
 cd options/podman
-./setup.sh                 # copy yml files to compose.d/
-cd ../..
-./prepare-compose.sh      # build COMPOSE_FILE from compose.d/*.yml
+./setup.sh
+# Note the paths shown, then:
+export COMPOSE_FILE=docker-compose.yml:$GOCLAW_DIR/options/podman/podman+network-fix.yml:$GOCLAW_DIR/options/podman/podman+user-fix.yml
 podman compose up -d
 ```
 
