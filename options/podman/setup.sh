@@ -134,29 +134,17 @@ echo -e "${BLUE}─── Installing configs ───────────�
 
 cp -r "$SOURCE_DIR/containers/." "$CONFIG_DIR/"
 
-# ─── Copy yml files to compose.d ─────────────────────────────────
+# ─── Compose Overlays ──────────────────────────────────────────────
 echo ""
-echo -e "${BLUE}─── Installing Compose Overlays ──────────────────────${NC}"
-
-compose_d="$GOCLAW_DIR/compose.d"
-mkdir -p "$compose_d"
-
-for yml in podman-user-fix.yml podman-network-fix.yml; do
-  src="$SCRIPT_DIR/$yml"
-  dest="$compose_d/$yml"
-
-  if [[ ! -f "$src" ]]; then
-    echo -e "  ${RED}✗ Source not found: $src${NC}"
-    continue
-  fi
-
-  if [[ -f "$dest" ]]; then
-    echo -e "  ${YELLOW}— Skipped (exists): $yml${NC}"
-  else
-    cp "$src" "$dest"
-    echo -e "  ${GREEN}✓ Copied: $yml${NC}"
-  fi
-done
+echo -e "${BLUE}─── Compose Overlays Available ──────────────────────────${NC}"
+echo ""
+echo "Podman overlay files are in: options/podman/"
+echo "  • podman+network-fix.yml  - fixes podman networking"
+echo "  • podman+user-fix.yml     - fixes rootless setup"
+echo ""
+echo "To use, add to COMPOSE_FILE manually:"
+echo "  export COMPOSE_FILE=docker-compose.yml:\$GOCLAW_DIR/options/podman/podman+network-fix.yml:\$GOCLAW_DIR/options/podman/podman+user-fix.yml"
+echo ""
 
 # ─── Summary ──────────────────────────────────────────────────────
 echo ""
