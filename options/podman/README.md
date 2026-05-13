@@ -43,19 +43,19 @@ Common pattern: `10.89.0.1` or `10.89.1.1` (third octet may vary)
 | `config/containers/containers.conf` | userns=keep-id, group_add |
 | `config/containers/storage.conf` | Overlay storage driver at `/opt/storage` |
 | `config/containers/registries.conf` | Add docker.io as default search |
-| `config/containers/oci-hook.d/poststop` | Auto-commit on exit 42 |
-| `podman-network-fix.yml` | Compose overlay for network settings |
-| `podman-user-fix.yml` | User namespace fixes |
+| `config/containers/oci-hook.d/poststop` | ~~Auto-commit on exit 42~~ (removed - use keithy/sensible)
+| `podman+network-fix.yml` | Compose overlay for network settings |
+| `podman+user-fix.yml` | User namespace fixes |
 
 ### Usage
 
-The setup script copies compose overlays to `compose.d/`, and `prepare-compose.sh` generates the `COMPOSE_FILE` from them:
+The setup script recommends overlay paths. Add them to your COMPOSE_FILE:
 
 ```bash
 cd options/podman
-./setup.sh                 # copy yml files to compose.d/
-cd ../..
-./prepare-compose.sh      # build COMPOSE_FILE from compose.d/*.yml
+./setup.sh
+# Note the paths shown, then:
+export COMPOSE_FILE=docker-compose.yml:$GOCLAW_DIR/options/podman/podman+network-fix.yml:$GOCLAW_DIR/options/podman/podman+user-fix.yml
 podman compose up -d
 ```
 
@@ -76,38 +76,4 @@ Postgres runs as UID 70 inside container. With `keep-id` in containers.conf, usi
 podman unshare chown -R 0:0 /srv/your-volume
 ```
 
-### OCI Poststop Hook (Auto-Commit)
 
-Container exits with code **42** to trigger auto-commit. The poststop hook commits the running container's filesystem to an image.
-
-**How it works:**
-1. Agent runs inside container, makes changes
-2. Agent exits with code 42
-3. Container stops, hook fires
-4. Hook runs `podman commit` — container's changes are saved
-5. Start container again — now has the new layers
-
-**Hook location:** `config/containers/oci-hook.d/poststop`
-
-**Usage:**
-```bash
-# Inside container - when ready to save state
-exit 42
-
-# On host - container is now committed
-podman images | grep goclaw
-```
-
-**Why exit 42?**
-- Normal exit (0) = just stop
-- Error exit (1) = something went wrong
-- 42 = "save my work" signal
-
----
-
-## See Also
-
-- [Podman Networking](https://docs.podman.io/en/latest/markdown/podman.1.html#network)
-- [aardvark-dns](https://github.com/containers/aardvark-dns)
-- [Nginx Resolver](https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver)
-- [Self-Building Container](./SELF_BUILDING.md)
