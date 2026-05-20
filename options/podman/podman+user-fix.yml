@@ -7,9 +7,12 @@
 # where container internal UIDs don't map correctly to host.
 
 services:
-  goclaw:
-    user: "0:0"
+#  goclaw:
+#    user: 0
+#  postgres:
+#    user: "0:0"
   goclaw-ui:
     user: "0:0"
-  upgrade:
-    user: "0:0"
+#  upgrade:
+#    user: "0:0"
+

@@ -18,9 +18,7 @@ When GoClaw's nginx tries to resolve `goclaw` hostname, it fails because:
 
 **Symptom**: `nginx: [emerg] host not found` in container logs.
 
-**Solution**: Set `NGINX_DNS_RESOLVER` env var to podman's gateway IP (e.g., `10.89.1.1`).
-
-The nginx image's entrypoint processes `*.template` files with envsubst, so the resolver is set at runtime.
+**Solution**: No manual resolver configuration needed. The nginx image automatically uses `/etc/resolv.conf` via `NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1` in `docker-compose.selfservice.yml`.
 
 ### Podman Network Gateway IP
 
@@ -70,8 +68,23 @@ Podman rootless uses overlayfs. Files may be owned by root inside container but 
 Use `podman unshare` to access or check with `podman exec stat /path`
 
 #### Database permissions
-Postgres runs as UID 70 inside container. With `keep-id` in containers.conf, using `0:0` inside the container maps to the external owner:
-```bash
+Normally Postgres expects the container to be started as root UID 0, and later it
+switches the postgres process to run as UID postgres(999). 
+
+Alternatively if it finds that it has been started as another UID, it will use
+that UID, and attempt to update the permissions of all files to match that UID.
+
+With `keep-id` set, the container runs rootless as the host user id.
+the attempt to change permissions will likely fail due to lack of
+permissions, but as long as the persisted files are owned by the
+user it should works.
+
+```
+# permissions fix
+chown -R $(id -u):$(id -g) /srv/$COMPOSE_PROJECT_NAME_postgres-data
+```
+
+```
 # Fix ownership (0:0 maps to external UID via keep-id)
 podman unshare chown -R 0:0 /srv/your-volume
 ```
